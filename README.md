@@ -1,7 +1,7 @@
 # Maintenance Cache Backend Module
 
 **Module:** `Silvertree_MaintenanceCacheBackend`  
-**Version:** 1.0.0  
+**Version:** 1.0.1
 **Compatibility:** Magento 2.4+ / PHP 8.1+
 
 ## Overview
@@ -22,7 +22,7 @@ better scalability for distributed environments.
 
 1. **Install the module:**
    ```bash
-   composer require silvertree/maintenance-cache-backend
+   composer require silvertree/m2-maintenance-cache-backend
    php bin/magento module:enable Silvertree_MaintenanceCacheBackend
    php bin/magento setup:upgrade
    ```
@@ -50,7 +50,7 @@ to Magento's default filesystem behavior.
     'maintenance' => [
         'backend' => 'Magento\\Framework\\Cache\\Backend\\Redis',
         'backend_options' => [
-            'server' => 'ftn-m2-redis',
+            'server' => '127.0.0.1',
             'database' => '14',
             'port' => '6379',
             'password' => '',
