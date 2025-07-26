@@ -1,0 +1,21 @@
+{
+    "name": "silvertree/m2-maintenance-cache-backend",
+    "description": "Cache-based maintenance mode system that uses Redis/cache backends instead of filesystem checks",
+    "type": "magento2-module",
+    "version": "1.0.0",
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Silvertree\\MaintenanceCacheBackend\\": ""
+        }
+    },
+    "license": [
+        "Apache-2.0"
+    ],
+    "require": {
+        "php": ">=8.2",
+        "magento/framework": "*"
+    }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2025. Silvertree Brands
+ */
+-->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\App\MaintenanceMode">
+        <plugin name="silertree_maintenance_cache_backend_maintenance_interceptor"
+                type="Silvertree\MaintenanceCacheBackend\Plugin\MaintenanceModePlugin"
+                sortOrder="10"/>
+    </type>
+</config>
