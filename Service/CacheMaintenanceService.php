@@ -173,6 +173,10 @@ class CacheMaintenanceService
         }
 
         $serializedData = $this->cache->load($key);
+        if ($serializedData === false) {
+            return false;
+        }
+        
         return $this->serializer->unserialize($serializedData);
     }
 
