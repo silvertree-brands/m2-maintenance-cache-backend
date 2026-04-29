@@ -16,6 +16,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "magento/framework": "*"
+        "magento/framework": "*",
+        "psr/log": "*"
     }
 }

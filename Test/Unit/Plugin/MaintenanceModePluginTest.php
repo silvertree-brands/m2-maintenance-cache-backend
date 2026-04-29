@@ -7,52 +7,44 @@ declare(strict_types=1);
 
 namespace Silvertree\MaintenanceCacheBackend\Test\Unit\Plugin;
 
-use Magento\Framework\App\MaintenanceMode;
-use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
-use Silvertree\MaintenanceCacheBackend\Plugin\MaintenanceModePlugin;
-use Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService;
-
 /**
  * Unit test for MaintenanceModePlugin
  */
-class MaintenanceModePluginTest extends TestCase
+#[\PHPUnit\Framework\Attributes\Group('silvertree-vendor')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\Silvertree\MaintenanceCacheBackend\Plugin\MaintenanceModePlugin::class)]
+class MaintenanceModePluginTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @var MaintenanceModePlugin|object
-     */
-    private MaintenanceModePlugin $plugin;
+    private \Silvertree\MaintenanceCacheBackend\Plugin\MaintenanceModePlugin $plugin;
 
-    /** @var LoggerInterface|MockObject */
+    /** @var \Psr\Log\LoggerInterface&\PHPUnit\Framework\MockObject\MockObject */
     private $loggerMock;
 
-    /** @var CacheMaintenanceService|MockObject */
+    /** @var \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService&\PHPUnit\Framework\MockObject\MockObject */
     private $cacheMaintenanceServiceMock;
 
-    /** @var MaintenanceMode|MockObject */
+    /** @var \Magento\Framework\App\MaintenanceMode&\PHPUnit\Framework\MockObject\MockObject */
     private $maintenanceModeMock;
 
     protected function setUp(): void
     {
-        $objectManager = new ObjectManager($this);
+        $this->loggerMock = $this->createMock(\Psr\Log\LoggerInterface::class);
+        $this->cacheMaintenanceServiceMock = $this->createMock(
+            \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService::class
+        );
+        $this->maintenanceModeMock = $this->createMock(\Magento\Framework\App\MaintenanceMode::class);
 
-        $this->loggerMock = $this->createMock(LoggerInterface::class);
-        $this->cacheMaintenanceServiceMock = $this->createMock(CacheMaintenanceService::class);
-        $this->maintenanceModeMock = $this->createMock(MaintenanceMode::class);
-
-        $this->plugin = $objectManager->getObject(MaintenanceModePlugin::class, [
-            'logger' => $this->loggerMock,
-            'cacheMaintenanceService' => $this->cacheMaintenanceServiceMock
-        ]);
+        $this->plugin = new \Silvertree\MaintenanceCacheBackend\Plugin\MaintenanceModePlugin(
+            $this->loggerMock,
+            $this->cacheMaintenanceServiceMock
+        );
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundIsOnSuccessful(): void
     {
         $remoteAddr = '192.168.1.1';
         $proceed = function ($addr) {
-            return true; // This should not be called
+            $this->fail("proceed() unexpectedly called with addr={$addr}");
         };
 
         $this->cacheMaintenanceServiceMock
@@ -63,20 +55,21 @@ class MaintenanceModePluginTest extends TestCase
         $this->cacheMaintenanceServiceMock
             ->expects($this->once())
             ->method('getMaintenanceAddresses')
-            ->willReturn(['10.0.0.1', '192.168.1.2']); // IP not in whitelist
+            ->willReturn(['10.0.0.1', '192.168.1.2']);
 
         $this->loggerMock->expects($this->never())->method('warning');
 
         $result = $this->plugin->aroundIsOn($this->maintenanceModeMock, $proceed, $remoteAddr);
 
-        $this->assertTrue($result); // Maintenance active for non-whitelisted IP
+        $this->assertTrue($result);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundIsOnWithWhitelistedIp(): void
     {
         $remoteAddr = '192.168.1.1';
         $proceed = function ($addr) {
-            return true; // This should not be called
+            $this->fail("proceed() unexpectedly called with addr={$addr}");
         };
 
         $this->cacheMaintenanceServiceMock
@@ -87,18 +80,19 @@ class MaintenanceModePluginTest extends TestCase
         $this->cacheMaintenanceServiceMock
             ->expects($this->once())
             ->method('getMaintenanceAddresses')
-            ->willReturn(['192.168.1.1', '10.0.0.1']); // IP is in whitelist
+            ->willReturn(['192.168.1.1', '10.0.0.1']);
 
         $result = $this->plugin->aroundIsOn($this->maintenanceModeMock, $proceed, $remoteAddr);
 
-        $this->assertFalse($result); // Maintenance NOT active for whitelisted IP
+        $this->assertFalse($result);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundIsOnWhenMaintenanceDisabled(): void
     {
         $remoteAddr = '192.168.1.1';
         $proceed = function ($addr) {
-            return true; // This should not be called
+            $this->fail("proceed() unexpectedly called with addr={$addr}");
         };
 
         $this->cacheMaintenanceServiceMock
@@ -112,9 +106,10 @@ class MaintenanceModePluginTest extends TestCase
 
         $result = $this->plugin->aroundIsOn($this->maintenanceModeMock, $proceed, $remoteAddr);
 
-        $this->assertFalse($result); // Maintenance NOT active when disabled
+        $this->assertFalse($result);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundIsOnWithCacheFailure(): void
     {
         $remoteAddr = '192.168.1.1';
@@ -145,12 +140,15 @@ class MaintenanceModePluginTest extends TestCase
         $this->assertTrue($proceedCalled, 'Proceed should be called for fallback');
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundSetSuccessful(): void
     {
         $isOn = true;
-        $addresses = ['192.168.1.1', '10.0.0.1'];
-        $proceed = function ($isOn) {
-            // This should not be called
+        $proceed = function ($receivedIsOn) {
+            $this->fail(
+                'proceed() unexpectedly called: '
+                . \json_encode($receivedIsOn, \JSON_THROW_ON_ERROR)
+            );
         };
 
         $this->cacheMaintenanceServiceMock
@@ -160,13 +158,13 @@ class MaintenanceModePluginTest extends TestCase
 
         $this->loggerMock->expects($this->never())->method('warning');
 
-        $this->plugin->aroundSet($this->maintenanceModeMock, $proceed, $isOn, $addresses);
+        $this->plugin->aroundSet($this->maintenanceModeMock, $proceed, $isOn);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundSetWithCacheFailure(): void
     {
         $isOn = true;
-        $addresses = ['192.168.1.1'];
         $exception = new \Exception('Cache write failure');
         $proceedCalled = false;
         $proceed = function ($receivedIsOn) use ($isOn, &$proceedCalled) {
@@ -191,16 +189,19 @@ class MaintenanceModePluginTest extends TestCase
                 ]
             );
 
-        $this->plugin->aroundSet($this->maintenanceModeMock, $proceed, $isOn, $addresses);
+        $this->plugin->aroundSet($this->maintenanceModeMock, $proceed, $isOn);
         $this->assertTrue($proceedCalled, 'Proceed should be called for fallback');
     }
 
-    public function testAroundSetWithEmptyAddresses(): void
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function testAroundSetWhenMaintenanceOff(): void
     {
         $isOn = false;
-        $addresses = [];
-        $proceed = function ($isOn) {
-            // This should not be called
+        $proceed = function ($receivedIsOn) {
+            $this->fail(
+                'proceed() unexpectedly called: '
+                . \json_encode($receivedIsOn, \JSON_THROW_ON_ERROR)
+            );
         };
 
         $this->cacheMaintenanceServiceMock
@@ -208,14 +209,15 @@ class MaintenanceModePluginTest extends TestCase
             ->method('setMaintenanceMode')
             ->with($isOn);
 
-        $this->plugin->aroundSet($this->maintenanceModeMock, $proceed, $isOn, $addresses);
+        $this->plugin->aroundSet($this->maintenanceModeMock, $proceed, $isOn);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundGetAddressInfoSuccessful(): void
     {
         $expectedAddresses = ['192.168.1.1', '10.0.0.1'];
         $proceed = function () {
-            return ['filesystem_addresses']; // This should not be called
+            return ['filesystem_addresses'];
         };
 
         $this->cacheMaintenanceServiceMock
@@ -230,6 +232,7 @@ class MaintenanceModePluginTest extends TestCase
         $this->assertEquals($expectedAddresses, $result);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundGetAddressInfoWithCacheFailure(): void
     {
         $expectedAddresses = ['filesystem_addresses'];
@@ -259,10 +262,11 @@ class MaintenanceModePluginTest extends TestCase
         $this->assertTrue($proceedCalled, 'Proceed should be called for fallback');
     }
 
-    public function testAroundGetAddressInfoReturnsEmptyString(): void
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function testAroundGetAddressInfoReturnsEmptyArray(): void
     {
         $proceed = function () {
-            return []; // This should not be called
+            return [];
         };
 
         $this->cacheMaintenanceServiceMock
@@ -275,9 +279,7 @@ class MaintenanceModePluginTest extends TestCase
         $this->assertEquals([], $result);
     }
 
-    /**
-     * Test multiple exception scenarios to ensure robust error handling
-     */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testMultipleExceptionScenarios(): void
     {
         $remoteAddr = '10.0.0.1';
@@ -300,11 +302,15 @@ class MaintenanceModePluginTest extends TestCase
         $this->assertTrue($proceedCalled, 'Proceed should be called for fallback');
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundSetAddressesSuccessful(): void
     {
         $addresses = '192.168.1.1,10.0.0.1';
-        $proceed = function ($addresses) {
-            // This should not be called
+        $proceed = function ($receivedAddresses) {
+            $this->fail(
+                'proceed() unexpectedly called: '
+                . \json_encode($receivedAddresses, \JSON_THROW_ON_ERROR)
+            );
         };
 
         $this->cacheMaintenanceServiceMock
@@ -317,11 +323,15 @@ class MaintenanceModePluginTest extends TestCase
         $this->plugin->aroundSetAddresses($this->maintenanceModeMock, $proceed, $addresses);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundSetAddressesWithEmptyString(): void
     {
         $addresses = '';
-        $proceed = function ($addresses) {
-            // This should not be called
+        $proceed = function ($receivedAddresses) {
+            $this->fail(
+                'proceed() unexpectedly called: '
+                . \json_encode($receivedAddresses, \JSON_THROW_ON_ERROR)
+            );
         };
 
         $this->cacheMaintenanceServiceMock
@@ -332,6 +342,7 @@ class MaintenanceModePluginTest extends TestCase
         $this->plugin->aroundSetAddresses($this->maintenanceModeMock, $proceed, $addresses);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testAroundSetAddressesWithCacheFailure(): void
     {
         $addresses = '192.168.1.1';
