@@ -7,12 +7,6 @@ declare(strict_types=1);
 
 namespace Silvertree\MaintenanceCacheBackend\Service;
 
-use Magento\Framework\App\Cache\Frontend\Factory as CacheFrontendFactory;
-use Magento\Framework\App\DeploymentConfig;
-use Magento\Framework\Cache\FrontendInterface;
-use Magento\Framework\Serialize\SerializerInterface;
-use Psr\Log\LoggerInterface;
-
 /**
  * Cache-based maintenance mode service
  *
@@ -26,23 +20,23 @@ class CacheMaintenanceService
     private const CACHE_KEY_ADDRESSES = 'ADDRESSES';
 
     /**
-     * @var FrontendInterface|null
+     * @var \Magento\Framework\Cache\FrontendInterface|null
      */
-    private ?FrontendInterface $cache = null;
+    private ?\Magento\Framework\Cache\FrontendInterface $cache = null;
 
     /**
-     * Constructor
+     * Construct
      *
-     * @param CacheFrontendFactory $cacheFrontendFactory
-     * @param DeploymentConfig $deploymentConfig
-     * @param SerializerInterface $serializer
-     * @param LoggerInterface $logger
+     * @param \Magento\Framework\App\Cache\Frontend\Factory $cacheFrontendFactory
+     * @param \Magento\Framework\App\DeploymentConfig $deploymentConfig
+     * @param \Magento\Framework\Serialize\SerializerInterface $serializer
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
-        private readonly CacheFrontendFactory $cacheFrontendFactory,
-        private readonly DeploymentConfig $deploymentConfig,
-        private readonly SerializerInterface $serializer,
-        private readonly LoggerInterface $logger
+        private readonly \Magento\Framework\App\Cache\Frontend\Factory $cacheFrontendFactory,
+        private readonly \Magento\Framework\App\DeploymentConfig $deploymentConfig,
+        private readonly \Magento\Framework\Serialize\SerializerInterface $serializer,
+        private readonly \Psr\Log\LoggerInterface $logger
     ) {
         $this->initializeCache();
     }
@@ -101,7 +95,7 @@ class CacheMaintenanceService
     /**
      * Get maintenance mode IP addresses from cache
      *
-     * @return array
+     * @return array <string>
      */
     public function getMaintenanceAddresses(): array
     {
@@ -116,7 +110,7 @@ class CacheMaintenanceService
     /**
      * Set maintenance mode IP addresses from cache
      *
-     * @param array $addresses
+     * @param array $addresses <string>
      * @return void
      * @throws \RuntimeException
      */
@@ -176,7 +170,7 @@ class CacheMaintenanceService
         if ($serializedData === false) {
             return false;
         }
-        
+
         return $this->serializer->unserialize($serializedData);
     }
 

@@ -7,49 +7,38 @@ declare(strict_types=1);
 
 namespace Silvertree\MaintenanceCacheBackend\Test\Unit\Service;
 
-use Magento\Framework\App\Cache\Frontend\Factory as CacheFrontendFactory;
-use Magento\Framework\App\DeploymentConfig;
-use Magento\Framework\Cache\FrontendInterface;
-use Magento\Framework\Serialize\SerializerInterface;
-use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
-use Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService;
-
 /**
  * Unit test for CacheMaintenanceService
  */
-class CacheMaintenanceServiceTest extends TestCase
+#[\PHPUnit\Framework\Attributes\Group('silvertree-vendor')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService::class)]
+class CacheMaintenanceServiceTest extends \PHPUnit\Framework\TestCase
 {
-    private CacheMaintenanceService $service;
+    private \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService $service;
 
-    /** @var CacheFrontendFactory|MockObject */
+    /** @var \Magento\Framework\App\Cache\Frontend\Factory&\PHPUnit\Framework\MockObject\MockObject */
     private $cacheFactoryMock;
 
-    /** @var DeploymentConfig|MockObject */
+    /** @var \Magento\Framework\App\DeploymentConfig&\PHPUnit\Framework\MockObject\MockObject */
     private $deploymentConfigMock;
 
-    /** @var SerializerInterface|MockObject */
+    /** @var \Magento\Framework\Serialize\SerializerInterface&\PHPUnit\Framework\MockObject\MockObject */
     private $serializerMock;
 
-    /** @var LoggerInterface|MockObject */
+    /** @var \Psr\Log\LoggerInterface&\PHPUnit\Framework\MockObject\MockObject */
     private $loggerMock;
 
-    /** @var FrontendInterface|MockObject */
+    /** @var \Magento\Framework\Cache\FrontendInterface&\PHPUnit\Framework\MockObject\MockObject */
     private $cacheFrontendMock;
 
     protected function setUp(): void
     {
-        $objectManager = new ObjectManager($this);
+        $this->cacheFactoryMock = $this->createMock(\Magento\Framework\App\Cache\Frontend\Factory::class);
+        $this->deploymentConfigMock = $this->createMock(\Magento\Framework\App\DeploymentConfig::class);
+        $this->serializerMock = $this->createMock(\Magento\Framework\Serialize\SerializerInterface::class);
+        $this->loggerMock = $this->createMock(\Psr\Log\LoggerInterface::class);
+        $this->cacheFrontendMock = $this->createMock(\Magento\Framework\Cache\FrontendInterface::class);
 
-        $this->cacheFactoryMock = $this->createMock(CacheFrontendFactory::class);
-        $this->deploymentConfigMock = $this->createMock(DeploymentConfig::class);
-        $this->serializerMock = $this->createMock(SerializerInterface::class);
-        $this->loggerMock = $this->createMock(LoggerInterface::class);
-        $this->cacheFrontendMock = $this->createMock(FrontendInterface::class);
-
-        // Default setup - cache is configured and available
         $this->deploymentConfigMock
             ->method('get')
             ->with('cache/maintenance')
@@ -62,10 +51,9 @@ class CacheMaintenanceServiceTest extends TestCase
             ->method('create')
             ->willReturn($this->cacheFrontendMock);
 
-        // Default serializer behavior
         $this->serializerMock
             ->method('serialize')
-            ->willReturnCallback(fn($data) => json_encode($data));
+            ->willReturnCallback(fn ($data) => json_encode($data));
 
         $this->serializerMock
             ->method('unserialize')
@@ -73,35 +61,37 @@ class CacheMaintenanceServiceTest extends TestCase
                 if ($data === false) {
                     throw new \InvalidArgumentException('Cannot unserialize false value');
                 }
-                $decoded = json_decode($data, true);
+                $decoded = json_decode((string) $data, true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     throw new \InvalidArgumentException('Invalid JSON data: ' . json_last_error_msg());
                 }
                 return $decoded;
             });
 
-        $this->service = $objectManager->getObject(CacheMaintenanceService::class, [
-            'cacheFrontendFactory' => $this->cacheFactoryMock,
-            'deploymentConfig' => $this->deploymentConfigMock,
-            'serializer' => $this->serializerMock,
-            'logger' => $this->loggerMock
-        ]);
+        $this->service = new \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService(
+            $this->cacheFactoryMock,
+            $this->deploymentConfigMock,
+            $this->serializerMock,
+            $this->loggerMock
+        );
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testIsMaintenanceEnabledReturnsTrueWhenCached(): void
     {
         $this->cacheFrontendMock
             ->expects($this->once())
             ->method('load')
             ->with('MAINTENANCE_MODE_STATUS')
-            ->willReturn('true'); // JSON serialized boolean
+            ->willReturn('true');
 
         $result = $this->service->isMaintenanceEnabled();
 
         $this->assertTrue($result);
     }
 
-    public function testIsMaintenanceEnabledThrowsExceptionWhenNotCached(): void
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function testIsMaintenanceEnabledReturnsFalseWhenNotCached(): void
     {
         $this->cacheFrontendMock
             ->expects($this->once())
@@ -109,19 +99,17 @@ class CacheMaintenanceServiceTest extends TestCase
             ->with('MAINTENANCE_MODE_STATUS')
             ->willReturn(false);
 
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Cannot unserialize false value');
-
-        $this->service->isMaintenanceEnabled();
+        $this->assertFalse($this->service->isMaintenanceEnabled());
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testIsMaintenanceEnabledThrowsExceptionOnCacheError(): void
     {
         $this->cacheFrontendMock
             ->expects($this->once())
             ->method('load')
             ->with('MAINTENANCE_MODE_STATUS')
-            ->willReturn('invalid_json'); // This will cause unserialize to fail
+            ->willReturn('invalid_json');
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON data:');
@@ -129,6 +117,7 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->isMaintenanceEnabled();
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testSetMaintenanceModeToTrue(): void
     {
         $this->cacheFrontendMock
@@ -140,6 +129,7 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->setMaintenanceMode(true);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testSetMaintenanceModeToFalse(): void
     {
         $this->cacheFrontendMock
@@ -151,6 +141,7 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->setMaintenanceMode(false);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testSetMaintenanceModeThrowsExceptionOnCacheFailure(): void
     {
         $this->cacheFrontendMock
@@ -165,6 +156,7 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->setMaintenanceMode(true);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testSetMaintenanceAddresses(): void
     {
         $addresses = ['192.168.1.1', '10.0.0.1'];
@@ -177,6 +169,7 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->setMaintenanceAddresses($addresses);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testSetMaintenanceAddressesWithEmptyArray(): void
     {
         $this->cacheFrontendMock
@@ -187,6 +180,7 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->setMaintenanceAddresses([]);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testGetMaintenanceAddressesReturnsArrayWhenCached(): void
     {
         $this->cacheFrontendMock
@@ -200,7 +194,8 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->assertEquals(['192.168.1.1', '10.0.0.1'], $result);
     }
 
-    public function testGetMaintenanceAddressesThrowsExceptionWhenNotCached(): void
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function testGetMaintenanceAddressesReturnsEmptyWhenNotCached(): void
     {
         $this->cacheFrontendMock
             ->expects($this->once())
@@ -208,15 +203,10 @@ class CacheMaintenanceServiceTest extends TestCase
             ->with('MAINTENANCE_MODE_ADDRESSES')
             ->willReturn(false);
 
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Cannot unserialize false value');
-
-        $this->service->getMaintenanceAddresses();
+        $this->assertSame([], $this->service->getMaintenanceAddresses());
     }
 
-    /**
-     * Test with boolean false value - JSON serialized
-     */
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testSerializationEdgeCases(): void
     {
         $this->cacheFrontendMock
@@ -228,44 +218,38 @@ class CacheMaintenanceServiceTest extends TestCase
         $this->service->setMaintenanceMode(false);
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testMissingCacheConfigurationThrowsException(): void
     {
-        // Create service with missing cache configuration
-        $objectManager = new ObjectManager($this);
-
-        $deploymentConfigMock = $this->createMock(DeploymentConfig::class);
+        $deploymentConfigMock = $this->createMock(\Magento\Framework\App\DeploymentConfig::class);
         $deploymentConfigMock
             ->method('get')
             ->with('cache/maintenance')
-            ->willReturn(null); // No configuration
+            ->willReturn(null);
 
-        $cacheFactoryMock = $this->createMock(CacheFrontendFactory::class);
-        // Factory should not be called when config is missing
+        $cacheFactoryMock = $this->createMock(\Magento\Framework\App\Cache\Frontend\Factory::class);
         $cacheFactoryMock->expects($this->never())->method('create');
 
-        $serializerMock = $this->createMock(SerializerInterface::class);
-        $loggerMock = $this->createMock(LoggerInterface::class);
+        $serializerMock = $this->createMock(\Magento\Framework\Serialize\SerializerInterface::class);
+        $loggerMock = $this->createMock(\Psr\Log\LoggerInterface::class);
 
-        $service = $objectManager->getObject(CacheMaintenanceService::class, [
-            'cacheFrontendFactory' => $cacheFactoryMock,
-            'deploymentConfig' => $deploymentConfigMock,
-            'serializer' => $serializerMock,
-            'logger' => $loggerMock
-        ]);
+        $service = new \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService(
+            $cacheFactoryMock,
+            $deploymentConfigMock,
+            $serializerMock,
+            $loggerMock
+        );
 
-        // Service should throw exception when cache is not configured
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Cache not available for key: MAINTENANCE_MODE_STATUS');
 
         $service->isMaintenanceEnabled();
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testCacheFactoryExceptionThrowsException(): void
     {
-        // Create service where cache factory throws exception
-        $objectManager = new ObjectManager($this);
-
-        $deploymentConfigMock = $this->createMock(DeploymentConfig::class);
+        $deploymentConfigMock = $this->createMock(\Magento\Framework\App\DeploymentConfig::class);
         $deploymentConfigMock
             ->method('get')
             ->with('cache/maintenance')
@@ -274,15 +258,15 @@ class CacheMaintenanceServiceTest extends TestCase
                 'backend_options' => ['server' => 'localhost']
             ]);
 
-        $cacheFactoryMock = $this->createMock(CacheFrontendFactory::class);
+        $cacheFactoryMock = $this->createMock(\Magento\Framework\App\Cache\Frontend\Factory::class);
         $cacheFactoryMock
             ->expects($this->once())
             ->method('create')
             ->willThrowException(new \Exception('Cache factory error'));
 
-        $serializerMock = $this->createMock(SerializerInterface::class);
+        $serializerMock = $this->createMock(\Magento\Framework\Serialize\SerializerInterface::class);
 
-        $loggerMock = $this->createMock(LoggerInterface::class);
+        $loggerMock = $this->createMock(\Psr\Log\LoggerInterface::class);
         $loggerMock
             ->expects($this->once())
             ->method('warning')
@@ -291,48 +275,43 @@ class CacheMaintenanceServiceTest extends TestCase
                 ['exception' => 'Cache factory error']
             );
 
-        $service = $objectManager->getObject(CacheMaintenanceService::class, [
-            'cacheFrontendFactory' => $cacheFactoryMock,
-            'deploymentConfig' => $deploymentConfigMock,
-            'serializer' => $serializerMock,
-            'logger' => $loggerMock
-        ]);
+        $service = new \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService(
+            $cacheFactoryMock,
+            $deploymentConfigMock,
+            $serializerMock,
+            $loggerMock
+        );
 
-        // Service should throw exception when cache factory fails
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Cache not available for key: MAINTENANCE_MODE_STATUS');
 
         $service->isMaintenanceEnabled();
     }
 
+    #[\PHPUnit\Framework\Attributes\Test]
     public function testInvalidBackendConfigurationThrowsException(): void
     {
-        // Create service with invalid backend configuration
-        $objectManager = new ObjectManager($this);
-
-        $deploymentConfigMock = $this->createMock(DeploymentConfig::class);
+        $deploymentConfigMock = $this->createMock(\Magento\Framework\App\DeploymentConfig::class);
         $deploymentConfigMock
             ->method('get')
             ->with('cache/maintenance')
             ->willReturn([
-                'invalid_key' => 'some_value' // Missing 'backend' key
+                'invalid_key' => 'some_value'
             ]);
 
-        $cacheFactoryMock = $this->createMock(CacheFrontendFactory::class);
-        // Factory should not be called for invalid config
+        $cacheFactoryMock = $this->createMock(\Magento\Framework\App\Cache\Frontend\Factory::class);
         $cacheFactoryMock->expects($this->never())->method('create');
 
-        $serializerMock = $this->createMock(SerializerInterface::class);
-        $loggerMock = $this->createMock(LoggerInterface::class);
+        $serializerMock = $this->createMock(\Magento\Framework\Serialize\SerializerInterface::class);
+        $loggerMock = $this->createMock(\Psr\Log\LoggerInterface::class);
 
-        $service = $objectManager->getObject(CacheMaintenanceService::class, [
-            'cacheFrontendFactory' => $cacheFactoryMock,
-            'deploymentConfig' => $deploymentConfigMock,
-            'serializer' => $serializerMock,
-            'logger' => $loggerMock
-        ]);
+        $service = new \Silvertree\MaintenanceCacheBackend\Service\CacheMaintenanceService(
+            $cacheFactoryMock,
+            $deploymentConfigMock,
+            $serializerMock,
+            $loggerMock
+        );
 
-        // Service should throw exception with invalid configuration
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Cache not available for key: MAINTENANCE_MODE_STATUS');
 
