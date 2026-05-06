@@ -46,7 +46,7 @@ class MaintenanceModePlugin
             return !in_array($remoteAddr, $addressInfo, true);
         } catch (\Throwable $e) {
             $this->logger->warning('Cache maintenance check failed, falling back to filesystem', [
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
             ]);
         }
 
@@ -75,7 +75,7 @@ class MaintenanceModePlugin
         } catch (\Throwable $e) {
             $this->logger->warning('Cache maintenance set failed, falling back to filesystem', [
                 'exception' => $e->getMessage(),
-                'maintenance_mode' => $isOn
+                'maintenance_mode' => $isOn,
             ]);
         }
 
@@ -100,7 +100,7 @@ class MaintenanceModePlugin
             return $this->cacheMaintenanceService->getMaintenanceAddresses();
         } catch (\Throwable $e) {
             $this->logger->warning('Cache address info retrieval failed, falling back to filesystem', [
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
             ]);
         }
 
@@ -131,7 +131,7 @@ class MaintenanceModePlugin
         } catch (\Throwable $e) {
             $this->logger->warning('Cache address setting failed, falling back to filesystem', [
                 'exception' => $e->getMessage(),
-                'addresses' => $addresses
+                'addresses' => $addresses,
             ]);
         }
 

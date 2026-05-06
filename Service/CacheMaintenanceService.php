@@ -14,7 +14,6 @@ namespace Silvertree\MaintenanceCacheBackend\Service;
  */
 class CacheMaintenanceService
 {
-
     public const CACHE_KEY_PREFIX = 'MAINTENANCE_MODE_';
     private const CACHE_KEY_STATUS = 'STATUS';
     private const CACHE_KEY_ADDRESSES = 'ADDRESSES';
@@ -39,34 +38,6 @@ class CacheMaintenanceService
         private readonly \Psr\Log\LoggerInterface $logger
     ) {
         $this->initializeCache();
-    }
-
-    /**
-     * Initialize cache frontend from configuration
-     *
-     * @return void
-     */
-    private function initializeCache(): void
-    {
-        try {
-            $cacheConfig = $this->deploymentConfig->get('cache/maintenance');
-
-            if (!$cacheConfig) {
-                $this->cache = null;
-                return;
-            }
-
-            if (isset($cacheConfig['backend'])) {
-                $this->cache = $this->cacheFrontendFactory->create($cacheConfig);
-            } else {
-                $this->cache = null;
-            }
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to initialize maintenance cache, falling back to filesystem', [
-                'exception' => $e->getMessage()
-            ]);
-            $this->cache = null;
-        }
     }
 
     /**
@@ -100,6 +71,7 @@ class CacheMaintenanceService
     public function getMaintenanceAddresses(): array
     {
         $addresses = $this->getCacheData($this->getCacheKey(self::CACHE_KEY_ADDRESSES));
+
         if ($addresses === false) {
             return [];
         }
@@ -120,6 +92,34 @@ class CacheMaintenanceService
             $this->setCacheData($this->getCacheKey(self::CACHE_KEY_ADDRESSES), $addresses);
         } else {
             $this->removeCacheData($this->getCacheKey(self::CACHE_KEY_ADDRESSES));
+        }
+    }
+
+    /**
+     * Initialize cache frontend from configuration
+     *
+     * @return void
+     */
+    private function initializeCache(): void
+    {
+        try {
+            $cacheConfig = $this->deploymentConfig->get('cache/maintenance');
+
+            if (!$cacheConfig) {
+                $this->cache = null;
+                return;
+            }
+
+            if (isset($cacheConfig['backend'])) {
+                $this->cache = $this->cacheFrontendFactory->create($cacheConfig);
+            } else {
+                $this->cache = null;
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('Failed to initialize maintenance cache, falling back to filesystem', [
+                'exception' => $e->getMessage(),
+            ]);
+            $this->cache = null;
         }
     }
 
@@ -167,6 +167,7 @@ class CacheMaintenanceService
         }
 
         $serializedData = $this->cache->load($key);
+
         if ($serializedData === false) {
             return false;
         }
